@@ -1,0 +1,196 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<link rel="stylesheet" href="~/css/IndexStyle.css"/>
+
+
+<div class="my-grid">
+    <div class="grid-elem b-right">
+        <form method="post" asp-action="AddNewLot">
+            <p>
+                <div>Currency:</div>
+                <select name="currency">
+                    <option value="USD" selected>USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="CAD">CAD</option>
+                    <option value="CNY">CNY</option>
+                    <option value="SEK">SEK</option>
+                </select>
+            </p>
+            
+            <p>
+                <div>Last Name:</div>
+                <input type="text" name="lastname" placeholder="Last Name" required/>
+            </p>
+
+            <p>
+                <div>Sum:</div>
+                @*<input type="text" name="sum" pattern="^[1-9]{1,5}(\.\d{1,5})?$" required />*@
+                <input type="text" name="sum" pattern="^0[\.,]{1}\d{1,5}$|^[1-9]{1,5}([\.,]{1}\d{1,5})?$" required />
+            </p>
+
+            <p>
+                <button style="padding:0.1rem 0.5rem;" type="submit">Add</button>
+            </p>
+        </form>
+    </div>
+
+    <div class="grid-elem b-right" id="currencyButtons">
+        <button class="grid-elem-button active">USD</button>
+        <button class="grid-elem-button">EUR</button>
+        <button class="grid-elem-button">CAD</button>
+        <button class="grid-elem-button">CNY</button>
+        <button class="grid-elem-button">SEK</button>
+        <button class="grid-elem-button">All</button>
+    </div>
+
+    <div id="parentDiv">
+        
+    </div>
+
+    <div class="grid-elem b-left">
+       <button class="button">By Lot</button>
+    </div>
+</div>
+
+
+
+<script src="~/lib/jquery/dist/jquery.min.js" asp-append-version="true"></script>
+
+<script>
+
+    var currency="USD";
+
+    var intervalId = setInterval(function(){GetLots(currency)},5000);
+
+    $(".grid-elem-button").on("click",function(e){
+
+        $(e.target).closest(".grid-elem").find(".active").removeClass("active");
+        
+        $(e.target).addClass("active");
+
+        currency=e.target.innerText;
+
+        clearInterval(intervalId);
+
+        GetLots(currency);
+
+        intervalId = setInterval(function () { GetLots(currency) }, 10000);
+    })
+
+
+    GetLots(currency);
+
+
+    async function GetLots(currency){
+        const response = await fetch("/Home/GetLotsByCurrency",{
+            method:"POST",
+            headers: { "Accept": "application/json", "Content-Type": "application/json" },
+            body:JSON.stringify({Data:currency})
+        });
+
+        if(response.ok===true){
+
+            const result=await response.json();
+
+            console.log(result);
+
+            CreateLots(result);
+        }
+    }
+
+    function CreateLots(lots){
+        const parentDiv=document.getElementById("parentDiv");
+
+        if(parentDiv.children.length>0) {
+            parentDiv.removeChild(document.getElementById("lotsDiv"));
+        }
+
+      const lotsDiv=document.createElement("div");
+      lotsDiv.setAttribute("id","lotsDiv");
+      lotsDiv.className="grid-elem";
+      
+
+      lots.forEach((lot)=>{
+          lotsDiv.appendChild(AddLot(lot));
+      });
+
+      parentDiv.appendChild(lotsDiv);
+    }
+
+
+    function AddLot(lot){
+        const div=document.createElement("div");
+
+        div.id=lot.id;
+        div.className="lot-elem";
+
+        const lastname=document.createElement("span");
+        lastname.innerText=lot.lastName;
+        lastname.className="name";
+
+        div.appendChild(lastname);
+
+        const sum=document.createElement("span");
+        sum.innerText=lot.sum;
+        sum.className="sum";
+
+        div.appendChild(sum);
+
+        const currency=document.createElement("span");
+        currency.innerText=lot.currency;
+        currency.className="currency";
+
+        div.appendChild(currency);
+
+
+        div.addEventListener("click",function(e){
+            $(e.target).closest(".grid-elem").find(".active").removeClass("active");
+            $(e.target).addClass("active");
+
+            const button=document.querySelector(".button");
+
+            button.id=e.target.id;
+        });
+
+
+        return div;
+    }
+
+   
+    document.querySelector(".button").addEventListener("click",function(e){
+
+        ByLot(e.target.id);
+    });
+
+    async function ByLot(id){
+        if(id==="") return;
+
+        
+        const response=await fetch(`/Home/ByLot/`,{
+            method:"post",
+            headers: { "Accept": "application/json", "Content-Type": "application/json" },
+            body:JSON.stringify({Data:id})
+        });
+
+        if(response.ok===true){
+            const id=await response.json();
+
+            if(id.data==null) return;
+
+            const div=document.getElementById("lotsDiv");
+
+            div.removeChild(document.getElementById(id.data));
+
+            alert("lot buyed!");
+        }
+    }
+
+    
+
+
+    
+
+   
+</script>                
